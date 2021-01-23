@@ -51,7 +51,10 @@ func evaluateFunction(s ast.Symbol, args interface{}) (interface{}, error) {
 
 func evaluateArgs(args interface{}) ([]interface{}, error) {
 	result := []interface{}{}
-	a := args.(*ast.Cell)
+	var a *ast.Cell
+	if args != nil {
+		a = args.(*ast.Cell)
+	}
 	for a != nil {
 		switch v := a.Left.(type) {
 		case *ast.Cell:
@@ -90,7 +93,7 @@ func add(args []interface{}) (interface{}, error) {
 		case int:
 			result += v
 		default:
-			return nil, fmt.Errorf("In procedure +: Wrong type argument in position %d: %v", i, v)
+			return nil, fmt.Errorf("In procedure +: Wrong type argument in position %d: %v", i+1, v)
 		}
 	}
 	return result, nil
@@ -98,39 +101,57 @@ func add(args []interface{}) (interface{}, error) {
 
 func subtract(args []interface{}) (interface{}, error) {
 	result := 0
+	firstElement := true
 	for i, c := range args {
 		switch v := c.(type) {
 		case int:
+			if firstElement {
+				firstElement = false
+			}
 			result -= v
 		default:
-			return nil, fmt.Errorf("In procedure -: Wrong type argument in position %d: %v", i, v)
+			return nil, fmt.Errorf("In procedure -: Wrong type argument in position %d: %v", i+1, v)
 		}
+	}
+	if firstElement {
+		return nil, fmt.Errorf("Wrong number of arguments to -")
 	}
 	return result, nil
 }
 
 func multiply(args []interface{}) (interface{}, error) {
-	result := 0
+	result := 1
 	for i, c := range args {
 		switch v := c.(type) {
 		case int:
 			result *= v
 		default:
-			return nil, fmt.Errorf("In procedure *: Wrong type argument in position %d: %v", i, v)
+			return nil, fmt.Errorf("In procedure *: Wrong type argument in position %d: %v", i+1, v)
 		}
 	}
 	return result, nil
 }
 
 func divide(args []interface{}) (interface{}, error) {
-	result := 0
+	result := 1
+	firstElement := true
 	for i, c := range args {
 		switch v := c.(type) {
 		case int:
+			if firstElement {
+				firstElement = false
+			}
+			if v == 0 {
+				return nil, fmt.Errorf("In procedure /: division by 0")
+			}
 			result /= v
 		default:
-			return nil, fmt.Errorf("In procedure /: Wrong type argument in position %d: %v", i, v)
+			fmt.Println("5")
+			return nil, fmt.Errorf("In procedure /: Wrong type argument in position %d: %v", i+1, v)
 		}
+	}
+	if firstElement {
+		return nil, fmt.Errorf("Wrong number of arguments to /")
 	}
 	return result, nil
 }

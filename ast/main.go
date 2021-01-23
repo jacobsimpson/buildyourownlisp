@@ -2,6 +2,8 @@ package ast
 
 import "fmt"
 
+type Symbol string
+
 type Cell struct {
 	Left  interface{}
 	Right interface{}

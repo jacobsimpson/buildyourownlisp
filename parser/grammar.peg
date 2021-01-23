@@ -41,7 +41,7 @@ String          = "\"" ("\\" . / [^"])* "\"" {
     return string(c.text[1:len(c.text)-1]), nil
 }
 symbol          = (!delimiter .)+ {
-    return string(c.text), nil
+    return ast.Symbol(c.text), nil
 }
 space           = [ \t\n\r]
 _ "whitespace"  = space*

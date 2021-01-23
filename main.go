@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"buildyourownlisp/evaluator"
 	"buildyourownlisp/parser"
 
 	"github.com/peterh/liner"
@@ -26,13 +27,19 @@ func main() {
 	for {
 		// Output our prompt and read a line of user input.
 		if input, err := line.Prompt("lispy> "); err == nil {
-			// Echo input back to user
-			fmt.Printf("No you're a %s\n", input)
 			line.AppendHistory(input)
 
 			ast, err := parser.Parse("interpreter", []byte(input))
-			fmt.Printf("ast = %+v\n", ast)
-			fmt.Printf("err = %+v\n", err)
+			if err != nil {
+				fmt.Printf("err = %+v\n", err)
+				continue
+			}
+			result, err := evaluator.Evaluate(ast)
+			if err != nil {
+				fmt.Printf("err = %+v\n", err)
+				continue
+			}
+			fmt.Printf("%v\n", result)
 		} else if err == liner.ErrPromptAborted {
 			break
 		} else {

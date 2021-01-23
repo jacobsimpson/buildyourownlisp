@@ -40,6 +40,8 @@ func main() {
 				continue
 			}
 			fmt.Printf("%v\n", result)
+			fmt.Printf("ast = %+v\n", ast)
+			fmt.Printf("err = %+v\n", err)
 		} else if err == liner.ErrPromptAborted {
 			break
 		} else {

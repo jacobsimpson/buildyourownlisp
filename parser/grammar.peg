@@ -1,0 +1,49 @@
+{
+	package parser
+
+    import (
+        "strconv"
+        "buildyourownlisp/ast"
+    )
+}
+
+program         = cell+
+cell            = _ value:(list / atom) _ {
+    // This step drops the whitespace surrounding a cell, by returning here
+    // only the value, and not the whitespace that is also captured by this
+    // rule.
+    return value, nil
+}
+list            = "(" value:(cell*) ")" {
+    list := value.([]interface{})
+    if len(list) == 0 {
+        return &ast.Cell{}, nil
+    }
+    result := &ast.Cell{}
+    tail := result
+    for _, e := range list {
+        c := &ast.Cell{Left: e}
+        tail.Right = c
+        tail = c
+    }
+    return result.Right, nil
+}
+
+atom            = boolean_ / integer / String / symbol
+boolean_        = ("#t" / "#f") {
+    return string(c.text) == "#t", nil
+}
+integer         = '-'?[1-9][0-9]* {
+    i, _ := strconv.Atoi(string(c.text))
+    return i, nil
+}
+String          = "\"" ("\\" . / [^"])* "\"" {
+    return string(c.text[1:len(c.text)-1]), nil
+}
+symbol          = (!delimiter .)+ {
+    return string(c.text), nil
+}
+space           = [ \t\n\r]
+_ "whitespace"  = space*
+paren           = "(" / ")"
+delimiter       = paren / space

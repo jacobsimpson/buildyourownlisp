@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"buildyourownlisp/evaluator"
 	"buildyourownlisp/parser"
@@ -23,6 +22,8 @@ func main() {
 	fmt.Println("Press Ctrl+c to Exit")
 	fmt.Println()
 
+	environment := evaluator.NewRootEnvironment()
+
 	// In a never ending loop.
 	for {
 		// Output our prompt and read a line of user input.
@@ -34,16 +35,16 @@ func main() {
 				fmt.Printf("err = %+v\n", err)
 				continue
 			}
-			result, err := evaluator.Evaluate(ast)
+			result, err := evaluator.Evaluate(environment, ast)
 			if err != nil {
-				fmt.Printf("err = %+v\n", err)
+				fmt.Printf("ERROR: %+v\n", err)
 				continue
 			}
 			fmt.Printf("%v\n", result)
 		} else if err == liner.ErrPromptAborted {
 			break
 		} else {
-			log.Print("Error reading line: ", err)
+			fmt.Printf("Error reading line: %v\n", err)
 		}
 	}
 }

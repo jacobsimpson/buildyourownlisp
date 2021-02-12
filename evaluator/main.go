@@ -5,11 +5,11 @@ import (
 	"fmt"
 )
 
-func Evaluate(statement interface{}) (interface{}, error) {
+func Evaluate(environment *Environment, statement interface{}) (interface{}, error) {
 	v := statement.([]interface{})
 	result := []interface{}{}
 	for _, s := range v {
-		e, err := evaluate(s)
+		e, err := evaluate(environment, s)
 		if err != nil {
 			return nil, err
 		}
@@ -18,38 +18,78 @@ func Evaluate(statement interface{}) (interface{}, error) {
 	return result, nil
 }
 
-func evaluate(statement interface{}) (interface{}, error) {
+func evaluate(environment *Environment, statement interface{}) (interface{}, error) {
 	switch v := statement.(type) {
 	case int, string, bool:
 		return v, nil
 	case *ast.Cell:
-		return evaluateList(v)
+		return evaluateList(environment, v)
 	}
 	return nil, fmt.Errorf("unable to evaluate %v", statement)
 }
 
-func evaluateList(head *ast.Cell) (interface{}, error) {
+func evaluateList(environment *Environment, head *ast.Cell) (interface{}, error) {
 	switch h := head.Left.(type) {
 	case ast.Symbol:
-		return evaluateFunction(h, head.Right)
+		return evaluateFunction(environment, h, head.Right)
 	}
+	fmt.Printf("evaluateList %+v\n", head.Left)
 	return nil, fmt.Errorf("Wrong type to apply: %v", head.Left)
 }
 
-func evaluateFunction(s ast.Symbol, args interface{}) (interface{}, error) {
-	fn := functions[s]
-	if fn == nil {
+func evaluateFunction(environment *Environment, s ast.Symbol, args interface{}) (interface{}, error) {
+	v := environment.bindings[s]
+	if v == nil {
 		return nil, fmt.Errorf("Unbound variable: %v", s)
 	}
 
-	a, err := evaluateArgs(args)
+	if fn, ok := v.(SpecialFormFn); ok {
+		return evaluateSpecialForm(environment, fn, args)
+	}
+
+	fn, ok := v.(InterpreterFn)
+	if !ok {
+		fmt.Printf("evaluateFunction\n")
+		return nil, fmt.Errorf("Wrong type to apply: %v", s)
+	}
+
+	a, err := evaluateArgs(environment, args)
 	if err != nil {
 		return nil, err
 	}
-	return fn(a)
+	return fn(environment, a)
 }
 
-func evaluateArgs(args interface{}) ([]interface{}, error) {
+func evaluateSpecialForm(environment *Environment, sf SpecialFormFn, args interface{}) (interface{}, error) {
+	fmt.Printf("evaluateSpecialForm: %+v\n", args)
+	return sf(environment, args)
+	//v, err := evaluate(environment, predicate)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//v := environment.bindings[s]
+	//if v == nil {
+	//	return nil, fmt.Errorf("Unbound variable: %v", s)
+	//}
+
+	//fn, ok := v.(InterpreterFn)
+	//if ok {
+	//	return evaluateSpecialForm(environment, args)
+	//}
+
+	//fn, ok := v.(InterpreterFn)
+	//if !ok {
+	//	return nil, fmt.Errorf("Wrong type to apply: %v", s)
+	//}
+
+	//a, err := evaluateArgs(environment, args)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return fn(environment, a)
+}
+
+func evaluateArgs(environment *Environment, args interface{}) ([]interface{}, error) {
 	result := []interface{}{}
 	var a *ast.Cell
 	if args != nil {
@@ -58,7 +98,7 @@ func evaluateArgs(args interface{}) ([]interface{}, error) {
 	for a != nil {
 		switch v := a.Left.(type) {
 		case *ast.Cell:
-			o, err := evaluateList(v)
+			o, err := evaluateList(environment, v)
 			if err != nil {
 				return nil, err
 			}
@@ -71,87 +111,6 @@ func evaluateArgs(args interface{}) ([]interface{}, error) {
 		} else {
 			a = a.Right.(*ast.Cell)
 		}
-	}
-	return result, nil
-}
-
-var functions map[ast.Symbol]func(args []interface{}) (interface{}, error)
-
-func init() {
-	functions = map[ast.Symbol]func(args []interface{}) (interface{}, error){
-		"+": add,
-		"-": subtract,
-		"*": multiply,
-		"/": divide,
-	}
-}
-
-func add(args []interface{}) (interface{}, error) {
-	result := 0
-	for i, c := range args {
-		switch v := c.(type) {
-		case int:
-			result += v
-		default:
-			return nil, fmt.Errorf("In procedure +: Wrong type argument in position %d: %v", i+1, v)
-		}
-	}
-	return result, nil
-}
-
-func subtract(args []interface{}) (interface{}, error) {
-	result := 0
-	firstElement := true
-	for i, c := range args {
-		switch v := c.(type) {
-		case int:
-			if firstElement {
-				firstElement = false
-			}
-			result -= v
-		default:
-			return nil, fmt.Errorf("In procedure -: Wrong type argument in position %d: %v", i+1, v)
-		}
-	}
-	if firstElement {
-		return nil, fmt.Errorf("Wrong number of arguments to -")
-	}
-	return result, nil
-}
-
-func multiply(args []interface{}) (interface{}, error) {
-	result := 1
-	for i, c := range args {
-		switch v := c.(type) {
-		case int:
-			result *= v
-		default:
-			return nil, fmt.Errorf("In procedure *: Wrong type argument in position %d: %v", i+1, v)
-		}
-	}
-	return result, nil
-}
-
-func divide(args []interface{}) (interface{}, error) {
-	result := 1
-	firstElement := true
-	for i, c := range args {
-		switch v := c.(type) {
-		case int:
-			if firstElement {
-				firstElement = false
-			}
-			if v == 0 {
-				return nil, fmt.Errorf("In procedure /: division by 0")
-			}
-			result /= v
-		default:
-			fmt.Println("5")
-			return nil, fmt.Errorf("In procedure /: Wrong type argument in position %d: %v", i+1, v)
-		}
-	}
-	if firstElement {
-		return nil, fmt.Errorf("Wrong number of arguments to /")
 	}
 	return result, nil
 }
